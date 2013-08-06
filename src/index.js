@@ -32,5 +32,26 @@ module.exports = function factory(prepare){
 
   var warehouse = Warehouse();
 
+  /*
+  
+  	the select resolver - it is posted here by the reception
+
+  	{
+			selector:{
+				tag:'thing'
+			},
+			context:[{
+				_digger:{
+					diggerid:123
+				}
+			}]
+  	}
+  	
+  */
+  warehouse.post('/select', function(req, res, next){
+  	console.log('-------------------------------------------');
+  	console.dir(req.toJSON());
+  })
+  
   return warehouse;
 }
