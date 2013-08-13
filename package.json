@@ -20,6 +20,6 @@
     "should": "~1.2.2"
   },
   "dependencies": {
-    "digger-warehouse": "0.0.1"
+    "digger-utils": "~1.0.3"
   }
 }

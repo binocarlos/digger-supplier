@@ -12,46 +12,158 @@
 
  */
 
-
-// ORIGINAL CONNECT LICENSE
-/*!
- * Connect - HTTPServer
- * Copyright(c) 2010 Sencha Inc.
- * Copyright(c) 2011 TJ Holowaychuk
- * MIT Licensed
- */
-
 /**
  * Module dependencies.
  */
 
 var util = require('util');
-var Warehouse = require('digger-warehouse');
+var EventEmitter = require('events').EventEmitter;
+var utils = require('digger-utils');
 
-module.exports = function factory(prepare){
+module.exports = function factory(){
 
-  var warehouse = Warehouse();
+  var supplier = function(req, reply){
+    supplier.handle_provision(req, function(error){
+      if(error){
+        reply(error);
+        return;
+      }
+      supplier.handle(req, reply);  
+    })
+  }
+
+  for(var i in EventEmitter.prototype){
+    supplier[i] = EventEmitter.prototype[i];
+  }
 
   /*
   
-  	the select resolver - it is posted here by the reception
+    this is called to tell the supplier what properties to chunk from the url
 
-  	{
-			selector:{
-				tag:'thing'
-			},
-			context:[{
-				_digger:{
-					diggerid:123
-				}
-			}]
-  	}
-  	
+    e.g.
+
+      /mongo is the mountpoint
+
+      supplier.provision('database', 'collection');
+
+      /mongo/bob/apples/select
+
+      becomes
+
+      /select
+
+      with req.headers['x-json-resource'] = {
+        database:'bob',
+        collection:'apples'
+      }
+    
   */
-  warehouse.post('/select', function(req, res, next){
-  	console.log('-------------------------------------------');
-  	console.dir(req.toJSON());
-  })
+  supplier.provision = function(){
+    var routes = utils.toArray(arguments);
+
+    if(!routes || routes.length<=0){
+      return this;
+    }
+    
+    this._provision_routes = routes;
+    return this;
+  }
+
+  /*
   
-  return warehouse;
+    this processes the url into a resource object that the supplier will prepare before the request is run
+    
+  */
+  supplier.handle_provision = function(req, done){
+    var resource = {};
+
+    // do we have anything to provision ?
+    if(this._provision_routes && this._provision_routes.length>=0){
+
+      var parts = req.url.split('/');
+      parts.shift();
+
+      if(parts.length<this._provision_routes.length){
+        done('provision paths needs ' + this._provision_routes.length + ' parts');
+        return;
+      }
+
+      var extra_supplier_route = [];
+
+      this._provision_routes.forEach(function(name){
+        resource[name] = parts.shift();
+        extra_supplier_route.push(resource[name]);
+      })
+
+      req.url = '/' + parts.join('/');
+      var supplier_route = req.headers['x-supplier-route'];
+      supplier_route += '/' + extra_supplier_route.join('/');
+      req.headers['x-supplier-route'] = supplier_route;
+    }
+
+    req.headers['x-json-resource'] = resource;
+    
+    done();
+  }
+
+  supplier.handle = function(req, reply){
+
+    /*
+    
+      resolve select query
+      
+    */
+    if(req.method==='get' || (req.method==='post' && req.url.match(/\/select/))){
+      req.selector = req.headers['x-json-selector'];
+      req.route = req.headers['x-supplier-route'];
+      req.context = req.body || [];
+
+      /*
+      
+        STAMP Containers
+        
+      */
+      var usereply = function(error, result){
+        if(error){
+          reply(error);
+          return;
+        }
+
+        result = (result || []).map(function(item){
+          var digger = item._digger || {};
+          digger.diggerwarehouse = req.route;
+          item._digger = digger;
+          return item;
+        })
+
+        reply(error, result);
+      }
+
+      supplier.emit('select', req, usereply);
+    }
+    else if(req.method==='post'){
+      var match;
+      if(match = req.url.match(/^\/(\w+)/)){
+        var id = match[1];
+        supplier.emit('load', {
+          id:match[1]
+        }, function(error, context){
+          req.context = context;
+          supplier.emit('append', req, reply);
+        })
+      }
+      else{
+        supplier.emit('append', req, reply);
+      }
+    }
+    else if(req.method==='put'){
+      supplier.emit('save', req, reply);
+    }
+    else if(req.method==='delete'){
+      supplier.emit('remove', req, reply);
+    }
+
+  }
+  
+  return supplier;
 }
