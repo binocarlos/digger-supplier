@@ -1,6 +1,6 @@
 {
   "name": "digger-supplier",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A database warehouse for digger.io.",
   "main": "src/index.js",
   "scripts": {
