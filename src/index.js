@@ -20,7 +20,9 @@ var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 var utils = require('digger-utils');
 
-module.exports = function factory(){
+module.exports = function factory(options){
+
+  options = options || {};
 
   var supplier = function(req, reply){
     supplier.handle_provision(req, function(error){
@@ -163,6 +165,13 @@ module.exports = function factory(){
       supplier.emit('remove', req, reply);
     }
 
+  }
+
+  if(options.provision){
+    if(!utils.isArray(options.provision)){
+      options.provision = [options.provision];
+    }
+    supplier.provision.apply(supplier, options.provision);
   }
   
   return supplier;
