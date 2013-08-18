@@ -19,10 +19,18 @@
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 var utils = require('digger-utils');
+var async = require('async');
 
 module.exports = function factory(options){
 
   options = options || {};
+
+  /*
+  
+    our middleware stack
+    
+  */
+  var stack = [];
 
   var supplier = function(req, reply){
     supplier.handle_provision(req, function(error){
@@ -30,7 +38,29 @@ module.exports = function factory(options){
         reply(error);
         return;
       }
-      supplier.handle(req, reply);  
+
+      if(stack.length>0){
+        var usestack = [].concat(stack);
+
+        function run_stack(){
+          if(usestack.length<=0){
+            supplier.handle(req, reply);
+          }
+          else{
+            var handle = usestack.shift();
+            
+            handle(req, reply, function(){
+              run_stack();
+            })
+          }
+        }
+
+        run_stack();
+      }
+      else{
+        supplier.handle(req, reply);  
+      }
+      
     })
   }
 
@@ -68,6 +98,16 @@ module.exports = function factory(options){
     }
     
     this._provision_routes = routes;
+    return this;
+  }
+
+  /*
+  
+    add a middleware - these are run before the request events are triggered
+    
+  */
+  supplier.use = function(fn){
+    stack.push(fn);
     return this;
   }
 
@@ -119,6 +159,7 @@ module.exports = function factory(options){
       req.selector = req.headers['x-json-selector'];
       req.route = req.headers['x-supplier-route'];
       req.context = req.body || [];
+
 
       /*
       
