@@ -20,6 +20,7 @@ var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 var utils = require('digger-utils');
 var async = require('async');
+var miniware = require('miniware');
 
 module.exports = function factory(options){
 
@@ -30,7 +31,7 @@ module.exports = function factory(options){
     our middleware stack
     
   */
-  var stack = [];
+  var stack = miniware();
 
   var supplier = function(req, reply){
     supplier.handle_provision(req, function(error){
@@ -39,28 +40,15 @@ module.exports = function factory(options){
         return;
       }
 
-      if(stack.length>0){
-        var usestack = [].concat(stack);
-
-        function run_stack(){
-          if(usestack.length<=0){
-            supplier.handle(req, reply);
-          }
-          else{
-            var handle = usestack.shift();
-            
-            handle(req, reply, function(){
-              run_stack();
-            })
-          }
-        }
-
-        run_stack();
-      }
-      else{
-        supplier.handle(req, reply);  
-      }
+      /*
       
+        run via the miniware before handling
+        
+      */
+      stack(req, reply, function(){
+        supplier.handle(req, reply);  
+      })
+            
     })
   }
 
@@ -107,7 +95,7 @@ module.exports = function factory(options){
     
   */
   supplier.use = function(fn){
-    stack.push(fn);
+    stack.use(fn);
     return this;
   }
 
