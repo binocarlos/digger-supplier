@@ -48,7 +48,11 @@ module.exports = function factory(options){
       */
       stack(req, reply, function(){
         process.nextTick(function(){
-          supplier.handle(req, reply);  
+          supplier.handle(req, function(error, results){
+            process.nextTick(function(){
+              reply(error, results);
+            })
+          });  
         })
       })
             

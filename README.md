@@ -1,7 +1,30 @@
 digger-supplier
 ===============
 
-A database warehouse for digger.io.
+A functional approach to REST api's.
+
+A digger supplier is just a function - it accepts **req** and **reply** arguments.
+
+req is a plain javascript object representing a HTTP request:
+
+```js
+// a request represent a load of item 1234
+{
+	method:'get',
+	url:'/1234',
+	headers:{
+
+	},
+	body:null
+}
+
+```
+
+reply is a standard node.js callback.
+
+## installation
+
+	$ npm install digger-supplier --save
 
 ## usage
 
@@ -66,13 +89,13 @@ supplier.specialize('user', function(specialist){
 supplier.on('select', function(select_query, reply){
 
 })
-supplier.on('append', function(select_query, reply){
+supplier.on('append', function(append_query, reply){
 
 })
-supplier.on('save', function(select_query, reply){
+supplier.on('save', function(save_query, reply){
 
 })
-supplier.on('remove', function(select_query, reply){
+supplier.on('remove', function(remove_query, reply){
 
 })
 
@@ -84,7 +107,7 @@ Statements for specialists can contain:
  * classname
  * id
 
-### routing
+## routing
 It is useful to have the same supplier object deal with different backend resources (like files or databases) based upon the route that is used.
 
 Imagine we have a supplier mounted on '/csv' - it is a csv file supplier that has access to a directory '/tmp/mycsvsupplier'.
