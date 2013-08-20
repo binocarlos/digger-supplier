@@ -34,6 +34,7 @@ module.exports = function factory(options){
   var stack = miniware();
 
   var supplier = function(req, reply){
+
     supplier.handle_provision(req, function(error){
       if(error){
         reply(error);
@@ -46,7 +47,9 @@ module.exports = function factory(options){
         
       */
       stack(req, reply, function(){
-        supplier.handle(req, reply);  
+        process.nextTick(function(){
+          supplier.handle(req, reply);  
+        })
       })
             
     })
@@ -138,6 +141,8 @@ module.exports = function factory(options){
 
   supplier.handle = function(req, reply){
 
+    supplier.emit('request', req);
+
     /*
     
       resolve select query
@@ -171,6 +176,7 @@ module.exports = function factory(options){
       }
 
       supplier.emit('select', req, usereply);
+      supplier.emit('action', 'select', req);
     }
     else if(req.method==='post'){
       var match;
@@ -181,17 +187,21 @@ module.exports = function factory(options){
         }, function(error, context){
           req.context = context;
           supplier.emit('append', req, reply);
+          supplier.emit('action', 'append', req);
         })
       }
       else{
         supplier.emit('append', req, reply);
+        supplier.emit('action', 'append', req);
       }
     }
     else if(req.method==='put'){
       supplier.emit('save', req, reply);
+      supplier.emit('action', 'save', req);
     }
     else if(req.method==='delete'){
       supplier.emit('remove', req, reply);
+      supplier.emit('action', 'remove', req);
     }
 
   }
