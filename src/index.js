@@ -117,6 +117,7 @@ module.exports = function factory(options){
     // do we have anything to provision ?
     if(this._provision_routes && this._provision_routes.length>=0){
 
+      var original_url = req.url;
       var parts = req.url.split('/');
       parts.shift();
 
@@ -136,10 +137,14 @@ module.exports = function factory(options){
       var supplier_route = req.headers['x-supplier-route'];
       supplier_route += '/' + extra_supplier_route.join('/');
       req.headers['x-supplier-route'] = supplier_route;
+      supplier.emit('digger:provision', {
+        original_url:original_url,
+        supplier_route:supplier_route
+      }, resource)
     }
 
     req.headers['x-json-resource'] = resource;
-    
+
     done();
   }
 
@@ -180,32 +185,33 @@ module.exports = function factory(options){
       }
 
       supplier.emit('select', req, usereply);
-      supplier.emit('action', 'select', req);
+      supplier.emit('digger:action', 'select', req);
     }
     else if(req.method==='post'){
       var match;
       if(match = req.url.match(/^\/(\w+)/)){
         var id = match[1];
         supplier.emit('load', {
-          id:match[1]
+          id:match[1],
+          headers:req.headers
         }, function(error, context){
           req.context = context;
           supplier.emit('append', req, reply);
-          supplier.emit('action', 'append', req);
+          supplier.emit('digger:action', 'append', req);
         })
       }
       else{
         supplier.emit('append', req, reply);
-        supplier.emit('action', 'append', req);
+        supplier.emit('digger:action', 'append', req);
       }
     }
     else if(req.method==='put'){
       supplier.emit('save', req, reply);
-      supplier.emit('action', 'save', req);
+      supplier.emit('digger:action', 'save', req);
     }
     else if(req.method==='delete'){
       supplier.emit('remove', req, reply);
-      supplier.emit('action', 'remove', req);
+      supplier.emit('digger:action', 'remove', req);
     }
 
   }
