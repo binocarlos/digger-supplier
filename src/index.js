@@ -35,6 +35,11 @@ module.exports = function factory(options){
 
   var supplier = function(req, reply){
 
+    if(req.hit){
+      throw new Error('test');
+    }
+    req.hit = true;
+    
     supplier.handle_provision(req, function(error){
       if(error){
         reply(error);
@@ -48,7 +53,9 @@ module.exports = function factory(options){
       */
       stack(req, reply, function(){
         process.nextTick(function(){
+
           supplier.handle(req, function(error, results){
+            
             process.nextTick(function(){
               reply(error, results);
             })
@@ -148,9 +155,16 @@ module.exports = function factory(options){
     done();
   }
 
-  supplier.handle = function(req, reply){
+  supplier.handle = function(req, finalreply){
 
     supplier.emit('request', req);
+
+    reply = function(error, results){
+      process.nextTick(function(){
+        finalreply(error, results);
+      })
+      
+    }
 
     /*
     
@@ -168,7 +182,7 @@ module.exports = function factory(options){
         STAMP Containers
         
       */
-      var usereply = function(error, result){
+      supplier.emit('select', req, function(error, result){
         if(error){
           reply(error);
           return;
@@ -181,11 +195,11 @@ module.exports = function factory(options){
           return item;
         })
 
-        reply(error, result);
-      }
+        supplier.emit('digger:action', 'select', req, (result || []).length);
 
-      supplier.emit('select', req, usereply);
-      supplier.emit('digger:action', 'select', req);
+        reply(error, result);
+      });
+      
     }
     else if(req.method==='post'){
       var match;
