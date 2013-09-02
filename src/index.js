@@ -35,35 +35,29 @@ module.exports = function factory(options){
 
   var supplier = function(req, reply){
 
-    if(req.hit){
-      throw new Error('test');
-    }
-    req.hit = true;
-    
+
     supplier.handle_provision(req, function(error){
+
       if(error){
         reply(error);
         return;
       }
 
-      /*
-      
-        run via the miniware before handling
-        
-      */
       stack(req, reply, function(){
+
         process.nextTick(function(){
 
           supplier.handle(req, function(error, results){
-            
+
             process.nextTick(function(){
               reply(error, results);
             })
-          });  
+          });
         })
       })
             
     })
+    
   }
 
   for(var i in EventEmitter.prototype){
@@ -157,14 +151,16 @@ module.exports = function factory(options){
 
   supplier.handle = function(req, finalreply){
 
-    supplier.emit('request', req);
+    //supplier.emit('request', req);
 
-    reply = function(error, results){
+    var reply = function(error, results){
       process.nextTick(function(){
         finalreply(error, results);
       })
       
     }
+
+
 
     /*
     
@@ -183,6 +179,7 @@ module.exports = function factory(options){
         
       */
       supplier.emit('select', req, function(error, result){
+
         if(error){
           reply(error);
           return;
@@ -198,19 +195,19 @@ module.exports = function factory(options){
         supplier.emit('digger:action', 'select', req, (result || []).length);
 
         reply(error, result);
-      });
+      })
       
     }
     else if(req.method==='post'){
       var match;
       if(match = req.url.match(/^\/(\w+)/)){
         var id = match[1];
-        supplier.emit('load', {
+        supplier.load({
           id:match[1],
           headers:req.headers
         }, function(error, context){
           req.context = context;
-          supplier.emit('append', req, reply);
+          supplier.append(req, reply);
           supplier.emit('digger:action', 'append', req);
         })
       }
@@ -228,6 +225,29 @@ module.exports = function factory(options){
       supplier.emit('digger:action', 'remove', req);
     }
 
+  }
+
+  supplier.load = function(req, reply){
+    req.headers['x-json-selector'] = {
+      diggerid:req.id
+    }
+    this.select(req, reply);
+  }
+
+  supplier.select = function(req, reply){
+    reply('404:method not defined - select');
+  }
+
+  supplier.append = function(req, reply){
+    reply('404:method not defined - append');
+  }
+
+  supplier.save = function(req, reply){
+    reply('404:method not defined - save');
+  }
+
+  supplier.remove = function(req, reply){
+    reply('404:method not defined - remove');
   }
 
   if(options.provision){
