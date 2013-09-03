@@ -243,20 +243,17 @@ module.exports = function factory(options){
     }
     else if(req.method==='post'){
       var match;
+
       if(match = req.url.match(/^\/(\w+)/)){
-        console.log('-------------------------------------------');
-        console.log('-------------------------------------------');
-        console.dir(req.url);
+
         var id = match[1];
-        console.log('-------------------------------------------');
-        console.dir(id);
-        process.exit();
-        supplier.load({
+
+        supplier.emit('load', {
           id:match[1],
           headers:req.headers
         }, function(error, context){
           req.context = context;
-          supplier.append(req, reply);
+          supplier.emit('append', req, reply);
           supplier.emit('digger:action', 'append', req);
         })
       }
