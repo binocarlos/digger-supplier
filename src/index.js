@@ -21,6 +21,7 @@ var EventEmitter = require('events').EventEmitter;
 var utils = require('digger-utils');
 var async = require('async');
 var miniware = require('miniware');
+var Selector = require('digger-selector');
 
 module.exports = function factory(options){
 
@@ -149,8 +150,16 @@ module.exports = function factory(options){
     done();
   }
 
-  supplier.handle = function(req, finalreply){
+  /*
+  
+    this can be overriden - it tells us whether a string is a container id
+    or if we should treat it as a selector
+    
+  */
+  supplier.matchid = utils.isdiggerid;
 
+  supplier.handle = function(req, finalreply){
+    var self = this;
     //supplier.emit('request', req);
 
     var reply = function(error, results){
@@ -167,11 +176,45 @@ module.exports = function factory(options){
       resolve select query
       
     */
+    
     if(req.method==='get' || (req.method==='post' && req.url.match(/\/select/))){
       req.selector = req.headers['x-json-selector'];
       req.route = req.headers['x-supplier-route'];
       req.context = req.body || [];
+      
+      /*
+      
+        /select is a direct contract request with a x-json-selector header
+        
+      */
+      if(req.url!=='/select' && req.url!=='/'){
 
+        /*
+        
+          look at the url to see if we have an id and / or selector combo
+          
+        */
+        var parts = req.url.split('/');
+        parts.shift();
+
+        /*
+        
+          we are running a direct id
+          
+        */
+        if(self.matchid(parts[0])){
+          req.selector = req.headers['x-json-selector'] = {
+            diggerid:parts[0],
+            modifier:{
+              laststep:true
+            }
+          }
+        }else{
+          req.selector = req.headers['x-json-selector'] = Selector.mini(parts[0]);
+          req.selector.modifier.laststep = true;
+        }
+      }
+    
 
       /*
       
@@ -201,7 +244,13 @@ module.exports = function factory(options){
     else if(req.method==='post'){
       var match;
       if(match = req.url.match(/^\/(\w+)/)){
+        console.log('-------------------------------------------');
+        console.log('-------------------------------------------');
+        console.dir(req.url);
         var id = match[1];
+        console.log('-------------------------------------------');
+        console.dir(id);
+        process.exit();
         supplier.load({
           id:match[1],
           headers:req.headers
