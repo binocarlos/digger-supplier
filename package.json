@@ -22,6 +22,7 @@
   "dependencies": {
     "digger-utils": "~1.0.6",
     "async": "~0.2.9",
-    "miniware": "0.0.1"
+    "miniware": "0.0.1",
+    "digger-selector": "0.0.8"
   }
 }
