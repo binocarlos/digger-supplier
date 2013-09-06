@@ -228,7 +228,32 @@ module.exports = function factory(options){
           return;
         }
 
-        result = (result || []).map(function(item){
+        /*
+        
+          if the result has a symlinks digger.header
+          then we tell the reception to branch the contract
+          to there
+          
+        */
+        var symlinks = {};
+        var linkcount = 0;
+
+        // loop the containers and stamp with our location
+        // this lets save and append and delete requests get back to here
+        result = (result || []).filter(function(item){
+          var digger = item._digger || {};
+          if(digger.symlinks){
+            for(var linkid in digger.symlinks){
+              linkcount++;
+              symlinks[linkid] = digger.symlinks[linkid];
+            }
+
+            return false;
+          }
+          else{
+            return true;
+          }
+        }).map(function(item){
           var digger = item._digger || {};
           digger.diggerwarehouse = req.route;
           item._digger = digger;
@@ -237,7 +262,14 @@ module.exports = function factory(options){
 
         supplier.emit('digger:action', 'select', req, (result || []).length);
 
-        reply(error, result);
+        var packet = linkcount>0 ? {
+          headers:{
+            symlinks:symlinks
+          },
+          body:result
+        } : result;
+
+        reply(error, packet);
       })
       
     }
