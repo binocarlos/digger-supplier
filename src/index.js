@@ -160,13 +160,30 @@ module.exports = function factory(options){
 
   supplier.handle = function(req, finalreply){
     var self = this;
+
     //supplier.emit('request', req);
+
+    /*
+    
+      stamp containers on their way out
+      
+    */
+
+    function stamp(results){
+      return (results || []).map(function(item){
+        var digger = item._digger || {};
+        digger.diggerwarehouse = req.headers['x-supplier-route'];
+        item._digger = digger;
+        return item;
+      })
+    }
 
     var reply = function(error, results){
       process.nextTick(function(){
+
+
         finalreply(error, results);
-      })
-      
+      })      
     }
 
 
@@ -177,7 +194,7 @@ module.exports = function factory(options){
       
     */
     
-    if(req.method==='get' || (req.method==='post' && req.url.match(/\/select/))){
+    if(req.method==='get' || (req.method==='post' && (req.url.match(/\/select/) || req.url.match(/\/tree/)))){
       req.selector = req.headers['x-json-selector'];
       req.route = req.headers['x-supplier-route'];
       req.context = req.body || [];
@@ -202,15 +219,27 @@ module.exports = function factory(options){
           we are running a direct id
           
         */
-        if(self.matchid(parts[0])){
+        var checkidparts = (parts[0] || '').split(':');
+        var checkid = checkidparts.shift();
+
+        /*
+        
+          a single id match - it can have modifiers
+          
+        */
+        if(self.matchid(checkid)){
+          var modifier = {
+            laststep:true
+          }
+          checkidparts.forEach(function(part){
+            modifier[part] = true;
+          })
           req.selector = req.headers['x-json-selector'] = {
-            diggerid:parts[0],
-            modifier:{
-              laststep:true
-            }
+            diggerid:checkid,
+            modifier:modifier
           }
         }else{
-          req.selector = req.headers['x-json-selector'] = Selector.mini(parts[0]);
+          req.selector = req.headers['x-json-selector'] = Selector.mini(checkid);
           req.selector.modifier.laststep = true;
         }
       }
@@ -240,25 +269,45 @@ module.exports = function factory(options){
 
         // loop the containers and stamp with our location
         // this lets save and append and delete requests get back to here
-        result = (result || []).filter(function(item){
+        result = (result || []).map(function(item, index){
           var digger = item._digger || {};
           if(digger.symlinks){
+
             for(var linkid in digger.symlinks){
               linkcount++;
-              symlinks[linkid] = digger.symlinks[linkid];
-            }
+              if(linkid.indexOf('attr:')==0){
+                symlinks[linkid] = {
+                  type:'attr',
+                  targetindex:index,
+                  link:digger.symlinks[linkid],
+                  data:item
+                }
 
-            return false;
+                return item;
+              }
+              else{
+                // we are replacing the link
+                symlinks[linkid] = {
+                  type:'symlink',
+                  targetindex:index,
+                  link:digger.symlinks[linkid]
+                }
+
+                // return a blank stub
+                // reception will fill this with the results
+                // from the symlink
+                return {
+                  _digger:item._digger
+                };
+              }              
+            }
           }
           else{
-            return true;
+            return item;
           }
-        }).map(function(item){
-          var digger = item._digger || {};
-          digger.diggerwarehouse = req.route;
-          item._digger = digger;
-          return item;
         })
+
+        result = stamp(result);
 
         supplier.emit('digger:action', 'select', req, (result || []).length);
 
@@ -285,7 +334,12 @@ module.exports = function factory(options){
           headers:req.headers
         }, function(error, context){
           req.context = context;
-          supplier.emit('append', req, reply);
+          supplier.emit('append', req, function(error, results){
+            if(!error){
+              results = stamp(results);
+            }
+            reply(error, results);
+          });
           supplier.emit('digger:action', 'append', req);
         })
       }
