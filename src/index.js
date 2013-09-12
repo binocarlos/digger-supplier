@@ -339,22 +339,41 @@ module.exports = function factory(options){
               results = stamp(results);
             }
             reply(error, results);
-          });
-          supplier.emit('digger:action', 'append', req);
+            if(!error){
+              supplier.emit('digger:action', 'append', req, results);    
+            }
+          })
+          
         })
       }
       else{
-        supplier.emit('append', req, reply);
-        supplier.emit('digger:action', 'append', req);
+        supplier.emit('append', req, function(error, results){
+          reply(error, results);
+
+          if(!error){
+            supplier.emit('digger:action', 'append', req, results);    
+          }
+        })
+        
       }
     }
     else if(req.method==='put'){
-      supplier.emit('save', req, reply);
-      supplier.emit('digger:action', 'save', req);
+      supplier.emit('save', req, function(error, results){
+        reply(error, results);
+
+        if(!error){
+          supplier.emit('digger:action', 'save', req, results);    
+        }
+      })
     }
     else if(req.method==='delete'){
-      supplier.emit('remove', req, reply);
-      supplier.emit('digger:action', 'remove', req);
+      supplier.emit('remove', req, function(error, results){
+        reply(error, results);
+
+        if(!error){
+          supplier.emit('digger:action', 'remove', req, results);    
+        }
+      })
     }
 
   }
