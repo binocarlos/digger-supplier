@@ -375,7 +375,6 @@ module.exports = function factory(options){
         }
       })
     }
-
   }
 
   supplier.load = function(req, reply){
@@ -383,22 +382,6 @@ module.exports = function factory(options){
       diggerid:req.id
     }
     this.select(req, reply);
-  }
-
-  supplier.select = function(req, reply){
-    reply('404:method not defined - select');
-  }
-
-  supplier.append = function(req, reply){
-    reply('404:method not defined - append');
-  }
-
-  supplier.save = function(req, reply){
-    reply('404:method not defined - save');
-  }
-
-  supplier.remove = function(req, reply){
-    reply('404:method not defined - remove');
   }
 
   if(options.provision){

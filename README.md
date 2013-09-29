@@ -53,59 +53,6 @@ supplier.use(function(req, res, next){
 
 The point of a supplier is to connect to a data source on the back and interpret our container queries upon that data.
 
-A supplier can 'specialize' - this means specifying a particular function when the selector matches a given statement.
-
-For example - here we create a specific handler for any query that is the 'user' tag.
-
-```js
-var Supplier = require('digger-supplier');
-var supplier = Supplier();
-
-/*
-
-	create a specialist which will deal with any interaction with a 'user' container
-
-*/
-supplier.specialize('user', function(specialist){
-	specialist.on('select', function(select_query, reply){
-
-	})
-	specialist.on('append', function(select_query, reply){
-	
-	})
-	specialist.on('save', function(select_query, reply){
-	
-	})
-	specialist.on('remove', function(select_query, reply){
-	
-	})
-})
-
-/*
-
-	the normal supplier
-
-*/
-supplier.on('select', function(select_query, reply){
-
-})
-supplier.on('append', function(append_query, reply){
-
-})
-supplier.on('save', function(save_query, reply){
-
-})
-supplier.on('remove', function(remove_query, reply){
-
-})
-
-```
-
-Statements for specialists can contain:
-
- * tagname
- * classname
- * id
 
 ## routing
 It is useful to have the same supplier object deal with different backend resources (like files or databases) based upon the route that is used.
