@@ -146,6 +146,16 @@ module.exports = function factory(options){
     }
 
     req.headers['x-json-resource'] = resource;
+    if(req.headers['x-json-supplier-alias']){
+      var alias = req.headers['x-json-supplier-alias'];
+
+      var route = req.headers['x-supplier-route'];
+
+      if(route.indexOf(alias.from)==0){
+        var url = route.substr(alias.from.length);
+        req.headers['x-supplier-route'] = alias.to + url;
+      }      
+    }
 
     done();
   }
