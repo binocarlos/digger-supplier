@@ -196,15 +196,25 @@ module.exports = function factory(options){
       })      
     }
 
-
-
+    /*
+    
+      ping
+      
+    */
+    if(req.url.match(/\/ping$/)){
+      reply(null, [{
+        _digger:{
+          tag:'pong'
+        }
+      }])
+    }
     /*
     
       resolve select query
       
     */
     
-    if(req.method==='get' || (req.method==='post' && (req.url.match(/\/select/) || req.url.match(/\/tree/)))){
+    else if(req.method==='get' || (req.method==='post' && (req.url.match(/\/select/) || req.url.match(/\/tree/)))){
       req.selector = req.headers['x-json-selector'];
       req.route = req.headers['x-supplier-route'];
       req.context = req.body || [];
